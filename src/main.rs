@@ -68,19 +68,19 @@ fn main() {
     win.set_pos((scr_w as i32 - 300) / 2, (scr_h as i32 - 360) / 2);
     win.set_color(bg());
 
-    //BUTTON
+    // BUTTON
     mkhead("BUTTON", 10, 10);
-    let mut rb_l = RadioRoundButton::new(14,  28, 120, 28, "Left");
+    let mut rb_l = RadioRoundButton::new(14, 28, 120, 28, "Left");
     let mut rb_r = RadioRoundButton::new(148, 28, 120, 28, "Right");
     for rb in [&mut rb_l, &mut rb_r] {
         rb.set_label_color(text()); rb.set_color(bg()); rb.set_selection_color(accent());
     }
     rb_l.set_value(true);
 
-    //  TIMING
+    // TIMING
     mkhead("TIMING", 10, 68);
     let (mut iv, mut ivj) = mkrow("Interval (ms)", 1000, 0, 10, 88);
-    let (mut hd, mut hdj) = mkrow("Hold (ms)",       50, 0, 10, 122);
+    let (mut hd, mut hdj) = mkrow("Hold (ms)", 50, 0, 10, 122);
 
     // HOTKEY
     mkhead("HOTKEY", 10, 160);
@@ -91,25 +91,25 @@ fn main() {
     frm_hk.set_label_size(12);
     frm_hk.set_align(Align::Left | Align::Inside);
 
-    let mut btn_set = mkbtn("Set",   176, 178, 52, 28, Color::from_rgb(69, 71, 90));
+    let mut btn_set = mkbtn("Set", 176, 178, 52, 28, Color::from_rgb(69, 71, 90));
     let mut btn_clr = mkbtn("Clear", 232, 178, 58, 28, Color::from_rgb(74, 42, 40));
 
     let mut chk = CheckButton::new(14, 212, 272, 24, " Hold to click");
     chk.set_label_color(text()); chk.set_color(bg()); chk.set_selection_color(accent());
 
-    //  divider
+    // divider
     let mut div = Frame::new(10, 246, 280, 1, "");
     div.set_frame(FrameType::FlatBox); div.set_color(surface());
 
-    //  status
-    let mut lbl_st = Frame::new(14, 254, 272, 24, "● Stopped");
+    // status
+    let mut lbl_st = Frame::new(14, 254, 272, 24, "Stopped");
     lbl_st.set_label_color(muted());
     lbl_st.set_label_font(Font::HelveticaBold);
     lbl_st.set_label_size(12);
     lbl_st.set_align(Align::Left | Align::Inside);
     lbl_st.set_frame(FrameType::NoBox);
 
-    //  toggle
+    // toggle
     let mut btn_tog = Button::new(10, 286, 280, 54, "START");
     btn_tog.set_color(go_bg());
     btn_tog.set_label_color(text());
@@ -121,12 +121,12 @@ fn main() {
     win.show();
 
     // Setup input Callbacks
-    { let s = state.clone(); rb_l.set_callback(move |_| s.button_code.store(BTN_LEFT,  Ordering::Relaxed)); }
+    { let s = state.clone(); rb_l.set_callback(move |_| s.button_code.store(BTN_LEFT, Ordering::Relaxed)); }
     { let s = state.clone(); rb_r.set_callback(move |_| s.button_code.store(BTN_RIGHT, Ordering::Relaxed)); }
-    { let s = state.clone(); iv .set_callback(move |w| s.interval_ms    .store(w.value().parse().unwrap_or(1).max(1), Ordering::Relaxed)); }
-    { let s = state.clone(); ivj.set_callback(move |w| s.interval_jitter.store(w.value().parse().unwrap_or(0),       Ordering::Relaxed)); }
-    { let s = state.clone(); hd .set_callback(move |w| s.hold_ms        .store(w.value().parse().unwrap_or(0),       Ordering::Relaxed)); }
-    { let s = state.clone(); hdj.set_callback(move |w| s.hold_jitter    .store(w.value().parse().unwrap_or(0),       Ordering::Relaxed)); }
+    { let s = state.clone(); iv.set_callback(move |w| s.interval_ms.store(w.value().parse().unwrap_or(1).max(1), Ordering::Relaxed)); }
+    { let s = state.clone(); ivj.set_callback(move |w| s.interval_jitter.store(w.value().parse().unwrap_or(0), Ordering::Relaxed)); }
+    { let s = state.clone(); hd.set_callback(move |w| s.hold_ms.store(w.value().parse().unwrap_or(0), Ordering::Relaxed)); }
+    { let s = state.clone(); hdj.set_callback(move |w| s.hold_jitter.store(w.value().parse().unwrap_or(0), Ordering::Relaxed)); }
 
     // Setup Action Callbacks (Sending messages via the tx channel)
     { let s = state.clone(); let t = tx.clone(); btn_set.set_callback(move |_| { s.grabbing.store(true, Ordering::SeqCst); t.send(true); }); }
@@ -139,41 +139,30 @@ fn main() {
 
     // Main App Loop with Event Receiver
     while a.wait() {
-        let mut needs_update = false;
-
-        // Drain the channel queue
-        while rx.recv().is_some() {
-            needs_update = true;
-        }
-
-        if needs_update {
+        if let Some(_) = rx.recv() {
             let code = state.hotkey_code.load(Ordering::SeqCst);
             if state.grabbing.load(Ordering::SeqCst) {
                 frm_hk.set_label("Press a key...");
                 frm_hk.set_label_color(Color::Yellow);
             } else {
-                let lbl = if code == 0 { "None".to_string() } else { format!("Key {code}") };
+                let lbl = if code == 0 { "None".to_owned() } else { format!("Key {code}") };
                 frm_hk.set_label(&lbl);
                 frm_hk.set_label_color(text());
             }
 
             if state.running.load(Ordering::SeqCst) {
-                lbl_st.set_label("● Running");  lbl_st.set_label_color(green());
-                btn_tog.set_label("STOP");      btn_tog.set_color(stop_bg());
+                lbl_st.set_label("Running"); lbl_st.set_label_color(green());
+                btn_tog.set_label("STOP"); btn_tog.set_color(stop_bg());
             } else {
-                lbl_st.set_label("● Stopped");  lbl_st.set_label_color(muted());
-                btn_tog.set_label("START");     btn_tog.set_color(go_bg());
+                lbl_st.set_label("Stopped"); lbl_st.set_label_color(muted());
+                btn_tog.set_label("START"); btn_tog.set_color(go_bg());
             }
-
-            // Redraw the specific widgets that changed
-            frm_hk.redraw();
-            lbl_st.redraw();
-            btn_tog.redraw();
+            win.redraw();
         }
     }
 }
 
-//  widget helpers
+// widget helpers
 
 fn mkhead(label: &str, x: i32, y: i32) {
     let mut f = Frame::new(x, y, 280, 14, label);
@@ -208,7 +197,7 @@ fn mkrow(label: &str, val: i32, jval: i32, x: i32, y: i32) -> (IntInput, IntInpu
     (i1, i2)
 }
 
-//  state helpers
+// state helpers
 
 fn set_running(state: &AppState, on: bool, tx: &app::Sender<bool>) {
     state.running.store(on, Ordering::SeqCst);
@@ -238,7 +227,7 @@ fn rand_jitter(range: i64) -> i64 {
     (rand::random::<u64>() % (range as u64 * 2 + 1)) as i64 - range
 }
 
-//  worker threads
+// worker threads
 
 fn clicker_loop(state: Arc<AppState>) {
     let mut keys = AttributeSet::<Key>::new();
@@ -273,11 +262,14 @@ fn clicker_loop(state: Arc<AppState>) {
 }
 
 fn global_listener(state: Arc<AppState>, tx: app::Sender<bool>) {
+    let mut devices: Vec<Device> = Vec::with_capacity(8);
     loop {
-        let mut devices: Vec<Device> = evdev::enumerate()
-        .map(|(_, d)| d)
-        .filter(|d| d.supported_keys().map_or(false, |k| k.contains(Key::KEY_ENTER)))
-        .collect();
+        devices.clear();
+        devices.extend(
+            evdev::enumerate()
+            .map(|(_, d)| d)
+            .filter(|d| d.supported_keys().map_or(false, |k| k.contains(Key::KEY_ENTER)))
+        );
 
         if devices.is_empty() { thread::sleep(Duration::from_secs(1)); continue; }
 
