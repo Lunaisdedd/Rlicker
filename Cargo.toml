@@ -7,7 +7,6 @@ edition = "2021"
 fltk  = { version = "1", features = ["fltk-bundled"] }
 evdev = "0.12"
 rand = "0.8"
-libc = "0.2"
 
 [profile.release]
 opt-level = 3
